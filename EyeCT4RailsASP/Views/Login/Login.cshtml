@@ -1,0 +1,70 @@
+﻿@model EyeCT4RailsBackend.User
+
+@{
+    Layout = null;
+    ViewBag.Title = "Login - GVB";
+}
+<style>
+
+    .background{
+        background-image: url('../../Content/Images/Login/9292background.jpg');
+        background-size:cover; 
+    }
+
+</style>
+
+<head>
+
+    <link href="~/Content/Login.css" rel="stylesheet" type="text/css" />
+    <link href="~/Content/bootstrap.min.css" rel="stylesheet" type="text/css" />
+    <title>Login - GVB</title>
+
+
+</head>
+
+<body class="background">
+
+@using (Html.BeginForm())
+{
+    @Html.AntiForgeryToken()
+
+<div class="container body-content">
+    <div class="featurette" id="about">
+        <div class="container">
+            <div class="card card-container">
+                <img id="profile-img" class="profile-img-card" src="~/Content/Images/gvb_transparant.png"/>
+                <p id="profile-name" class="profile-name-card"></p>
+                <form class="form-signin">
+                    @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+                    <div class="form-group">
+                        @Html.LabelFor(model => model.Username, htmlAttributes: new { @class = "control-label col-md-2" })
+                        <div class="col-md-12">
+                            @Html.EditorFor(model => model.Username, new { htmlAttributes = new { @class = "form-control" } })
+                            @Html.ValidationMessageFor(model => model.Username, "", new { @class = "text-danger" })
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        @Html.LabelFor(model => model.Password, htmlAttributes: new { @class = "control-label col-md-2" })
+                        <div class="col-md-12" style="padding-bottom:10px;">
+                            @Html.EditorFor(model => model.Password, new { htmlAttributes = new { @class = "form-control" } })
+                            @Html.ValidationMessageFor(model => model.Password, "", new { @class = "text-danger" })
+                        </div>
+                    </div>
+                    <button class="btn btn-lg btn-primary btn-block btn-signin" type="submit" value="Create">Sign in</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+}
+
+</body>
+<footer>
+
+
+
+
+<script src="~/Scripts/jquery-1.10.2.min.js"></script>
+<script src="~/Scripts/jquery.validate.min.js"></script>
+<script src="~/Scripts/jquery.validate.unobtrusive.min.js"></script>
+</footer>

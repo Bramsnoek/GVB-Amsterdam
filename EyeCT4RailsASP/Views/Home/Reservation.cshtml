@@ -1,0 +1,127 @@
+﻿@model EyeCT4RailsASP.ViewModels.ReservationFormViewModel
+
+
+<link href="~/Content/bootstrap-datetimepicker.min.css" rel="stylesheet" />
+<script src="~/Scripts/moment.min.js"></script>
+<script src="~/Scripts/bootstrap-datetimepicker.js"></script>
+
+<div class="modal-header">
+    @if (Model.TramNumber == null)
+    {
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true" onclick="LoadTrackModal(@Model.TrackNumber)" data-toggle="modal" data-target="#Track">&times;</button>
+    }
+    else
+    {
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true" onclick="OpenTramModal(@Model.TramNumber)" data-toggle="modal" data-target="#Tram">&times;</button>
+    }
+    
+    <h4 class="modal-title" id="Reservation-label">Nieuwe Reservering</h4>
+</div>
+<div class="modal-body">
+    <div>
+        <h2>Reservering Toevoegen</h2>
+    </div>
+    <div class="panel panel-default">
+        <form id="newReservationForm">
+            <div class="panel-body">
+                <div class="form-group">
+                    <div class="alert alert-danger errorfield hidden" role="alert">
+                        <span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span>
+                        <span class="sr-only">Error:</span>
+                        <p></p>
+                    </div>
+                    @Html.LabelFor(m => m.TrackNumber)
+                    @if (Model.TrackNumber != null)
+                    {
+                        @Html.TextBoxFor(m => m.TrackNumber, new { @class = "form-control", @readonly="true"})
+                        @Html.HiddenFor(m => m.TrackNumber)
+                        @Html.ValidationMessageFor(m => m.TrackNumber)
+}
+                    else
+                    {
+                        @Html.TextBoxFor(m => m.TrackNumber, new { @class = "form-control" })
+                        @Html.ValidationMessageFor(m => m.TrackNumber)
+}
+                </div>
+                <div class="form-group">
+                    @Html.LabelFor(m => m.TramNumber)
+                    @if (Model.TramNumber != null)
+                    {
+                        @Html.TextBoxFor(m => m.TramNumber, new { @class = "form-control" , @readonly = "true" })
+                        @Html.HiddenFor(m => m.TramNumber)
+                        @Html.ValidationMessageFor(m=>m.TramNumber)
+                    }
+                    else
+                    {
+                        @Html.TextBoxFor(m => m.TramNumber, new { @class = "form-control" })
+                        @Html.ValidationMessageFor(m => m.TramNumber)
+}
+                </div>
+                <div class="form-group">
+                    @Html.LabelFor(m => m.ReservationFor)
+                    <div class="input-group date dateTimePicker">
+                        @Html.TextBoxFor(m => m.ReservationFor, "{0:dd-MM-yyyy}", new { @class = "form-control" })
+                        <span class="input-group-addon"><span class="glyphicon glyphicon-calendar"></span></span>
+                    </div>
+                    @Html.ValidationMessageFor(m => m.ReservationFor)
+                </div>
+            </div>
+        </form>
+    </div>
+
+</div>
+<div class="modal-footer">
+    @if (Model.TramNumber == null)
+    {
+        <button type="button" class="btn btn-default" onclick="LoadTrackModal(@Model.TrackNumber)" data-target="#Track" data-toggle="modal" data-dismiss="modal">Sluiten</button>
+    }
+    else
+    {
+        <button type="button" class="btn btn-default" onclick="OpenTramModal(@Model.TramNumber)" data-target="#Tram" data-toggle="modal" data-dismiss="modal">Sluiten</button>
+    }
+    <button type="button" class="btn btn-primary btnSave">Opslaan</button>
+</div>
+
+<script>
+    $(function () {
+        $('.btnSave').on('click', function () {
+            var ReservationFormViewModel = { TrackNumber: $('#TrackNumber').val(), TramNumber: $('#TramNumber').val(), ReservationFor: $('#ReservationFor').val() }
+            $.ajax({
+                type: "GET",
+                url: "/Reservation/Save",
+                data: ReservationFormViewModel,
+                success: function (result) {
+                    switch (result) {
+                        case "0":
+                            $('.errorfield').removeClass('hidden');
+                            $('.errorfield p').html("Check de ingevoerde gegevens!");
+                            break;
+                        case "1":
+                            $('.errorfield').removeClass('hidden');
+                            $('.errorfield p').html("Geen geldige track opgegeven!");
+                            break;
+                        case "2":
+                            $('.errorfield').removeClass('hidden');
+                            $('.errorfield p').html("Geen geldige tram ingevoerd!");
+                            break;
+                        case "3":
+                            CloseReservationModal();
+                            break;
+                        case "4":
+                            $('.errorfield').removeClass('hidden');
+                            $('.errorfield p').html("Reservering kan niet worden gepland voor deze datum!");
+                    }
+                }
+            });
+        });
+    });
+
+</script>
+
+<script type="text/javascript">
+    $(function () {
+        $('.dateTimePicker').datetimepicker({
+            format: 'YYYY-MM-DD'
+        });
+    });
+</script>

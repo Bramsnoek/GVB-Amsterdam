@@ -1,0 +1,129 @@
+﻿@using EyeCT4RailsBackend
+
+@{
+    Remise remise = (Remise)Session["Remise"];
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@ViewBag.Title - GVB</title>
+    <link href="~/Content/bootstrap.min.css" rel="stylesheet" type="text/css" />
+    <link href="~/Content/Home.css" rel="stylesheet" />
+    <link rel="shortcut icon" type="image/x-icon" href="~/favicon.ico" />
+    <link rel="icon" type="image/png" href="~/favicon.ico" />
+    <script src="~/Scripts/modernizr-2.8.3.js"></script>
+    <script src="~/Scripts/DragDropLogic.js"></script>
+    <script src="~/Scripts/jquery-2.2.3.min.js"></script>
+    <script src="~/Scripts/bootstrap.min.js"></script>
+    <script src="~/Scripts/bootstrap-combobox.js"></script>
+</head>
+<body>
+    <div class="navbar navbar-default navbar-fixed-top navbar-static-top">
+        <div class="navbar-header">
+            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a class="navbar-brand" href="/Home/Index"><img width="80" src="~/Content/Images/Navbar/brand.png" /></a>
+        </div>
+        <div class="navbar-collapse collapse">
+            <!--Overzichten drop down-->
+            <ul class="nav navbar-nav">
+                <li class="dropdown">
+                    <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false"><span class="glyphicon glyphicon-th-list" aria-hidden="true"></span> Overzichten <span class="caret"></span></a>
+                    <ul class="dropdown-menu">
+                        <li><a href="/Home/Index"><span style="margin-right:5px;" class="glyphicon glyphicon-th" aria-hidden="true"></span> Remiseoverzicht</a></li>
+                        @if (Permission.Check(remise.UserLoggedIn, Permission.Permissions.CanViewCleaningView))
+                        {
+                            <li><a href="/Activity/Index/1"><span style="margin-right:5px;" class="glyphicon glyphicon-th" aria-hidden="true"></span> Schoonmaakoverzicht</a></li>}
+                        @if (Permission.Check(remise.UserLoggedIn, Permission.Permissions.CanViewReparationView))
+                        {
+                            <li><a href="/Activity/Index/0"><span style="margin-right:5px;" class="glyphicon glyphicon-th" aria-hidden="true"></span> Reparatieoverzicht</a></li>}
+                    </ul>
+                </li>
+            </ul>
+            <!--Spoor toevoegen-->
+            @if (Permission.Check(remise.UserLoggedIn, Permission.Permissions.CanAddTracks))
+            {
+                <ul class="nav navbar-nav">
+                    <li class="nav-tabs">
+                        <a href="/Track/New"><span style="margin-right:5px;" class="glyphicon glyphicon-plus" aria-hidden="true"></span> Spoor toevoegen</a>
+                    </li>
+                </ul>}
+
+            @if (Permission.Check(remise.UserLoggedIn, Permission.Permissions.CanRunSimulation))
+            {
+            <!--Simulatie-->
+                <ul class="nav navbar-nav">
+                    <li class="dropdown">
+                        <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false"><span class="glyphicon glyphicon-th-list" aria-hidden="true"></span> Simulatie <span class="caret"></span></a>
+                        <ul class="dropdown-menu">
+                            <li><a href="#" onclick="toggleSimulate(1)"><span style="margin-right:5px;" class="glyphicon glyphicon-play" aria-hidden="true"></span> Start</a></li>
+                            <li><a href="#" onclick="toggleSimulate(0)"><span style="margin-right:5px;" class="glyphicon glyphicon-stop" aria-hidden="true"></span> Stop</a></li>
+                        </ul>
+                    </li>
+                </ul>}
+            <!--Google Maps-->
+            <ul class="nav navbar-nav">
+                <li class="nav-tabs">
+                    <a href="/Maps/Index"><span style="margin-right:5px;" class="glyphicon glyphicon-map-marker" aria-hidden="true"></span> Google Maps</a>
+                </li>
+            </ul>
+            <!--Login/Logout drop down-->
+            <ul class="nav navbar-nav navbar-right">
+                <li class="dropdown">
+                    <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false"><span class="glyphicon glyphicon-user" aria-hidden="true"></span> @(((Remise)Session["Remise"]).UserLoggedIn.FirstName)<span class="caret"></span></a>
+                    <ul class="dropdown-menu">
+                        @if (((Remise)Session["Remise"]).UserLoggedIn == null)
+                        {
+                            <li><a href="/Login/Login"><span style="margin-right:5px;" class="glyphicon glyphicon-log-in" aria-hidden="true"></span> Inloggen</a></li>}
+                        else
+                        {
+                            <li><a href="/Login/Logout"><span style="margin-right:5px;" class="glyphicon glyphicon-log-out" aria-hidden="true"></span> Uitloggen</a></li>}
+
+                    </ul>
+                </li>
+            </ul>
+            <!--Filter-->
+            @if (Permission.Check(remise.UserLoggedIn, Permission.Permissions.CanEditFilters))
+            {
+                <ul class="nav navbar-nav navbar-right">
+                    <li class="dropdown">
+                        <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false"><span class="glyphicon glyphicon-filter" aria-hidden="true"></span>Tramstatus Filter <span class="caret"></span></a>
+                        <ul class="dropdown-menu">
+                            <li><a href="#" onclick="filterState(-1)"><span style="margin-right:5px;" class="glyphicon glyphicon-globe" aria-hidden="true"></span> Alle</a></li>
+                            <li><a href="#" onclick="filterState(0)"><span style="margin-right:5px;" class="glyphicon glyphicon-ok" aria-hidden="true"></span> Klaar</a></li>
+                            <li><a href="#" onclick="filterState(2)"><span style="margin-right:5px;" class="glyphicon glyphicon-wrench" aria-hidden="true"></span> Reparatie</a></li>
+                            <li><a href="#" onclick="filterState(1)"><span style="margin-right:5px;" class="glyphicon glyphicon-tint" aria-hidden="true"></span> Schoonmaak</a></li>
+                        </ul>
+                    </li>
+                </ul>}
+
+            @if (Permission.Check(remise.UserLoggedIn, Permission.Permissions.CanEditTramNote))
+            {
+            <!--Zoeken-->
+                <div class="nav navbar-nav navbar-right">
+                    <div class="navbar-form" role="search">
+                        <div class="input-group">
+                            <input type="text" class="form-control" placeholder="Zoeken" id="tramSearch" />
+                            <div class="input-group-btn">
+                                <button class="btn btn-default" onclick="searchTram()"><span class="glyphicon glyphicon-search"></span></button>
+                            </div>
+                        </div>
+                    </div>
+                </div>}
+        </div>
+    </div>
+
+    <div class="body-content">
+        @RenderBody()
+    </div>
+
+
+</body>
+</html>
+

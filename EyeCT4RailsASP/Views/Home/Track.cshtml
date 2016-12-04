@@ -1,0 +1,167 @@
+﻿@model EyeCT4RailsBackend.Track
+
+<style>
+    .NotResizeAble {
+        resize: none;
+    }
+
+    .GroupboxUnderTab {
+        margin-top: -1px;
+    }
+
+    .CenterButton {
+        text-align: center;
+    }
+
+    .disabledDiv {
+        pointer-events: none;
+        opacity: 0.4;
+    }
+</style>
+
+
+
+<div class="modal-header">
+
+
+    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+    <h4 class="modal-title" id="Track-label">Spoor @Model.TrackNumber</h4>
+
+</div>
+<div class="modal-body">
+    <div>
+        <ul class="nav nav-tabs">
+            <li role="presentation" class="active"><a href="#algemeen" aria-controls="algemeen" role="tab" data-toggle="tab">Algemeen</a></li>
+            <li role="presentation"><a href="#reserveringen" aria-controls="reserveringen" role="tab" data-toggle="tab">Reserveringen</a></li>
+        </ul>
+
+        <div class="tab-content">
+            <div class="tab-pane active GroupboxUnderTab" id="algemeen">
+                <div class="panel panel-default">
+                    <div class="panel-body">
+                            @{  bool blocked = false;
+                                foreach (EyeCT4RailsBackend.Sector sector in Model.Sectors)
+                                {
+                                    if (sector.ListedTram != null)
+                                    {
+                                        blocked = true;
+                                        break;
+                                    }
+                                }
+
+                                if (blocked)
+                                {
+                                    <div class="disabledDiv">
+                                        <h3>Status:</h3>
+                                        <div class="form-group">
+                                            @if (Model.Enabled)
+                                            {
+                                                <label class="checkbox-inline"><input id="chkTrackStatus" type="checkbox" >Vrij</label>
+}
+
+                                        </div>
+                                        
+                                    </div>}
+                                else
+                                {
+                                    <div>
+                                        <h3>Status:</h3>
+                                        <div class="form-control">
+                                            @if (Model.Enabled)
+                                            {
+                                                <label class="checkbox-inline"><input id="chkTrackStatus" type="checkbox" checked>Vrij</label>
+}
+                                            else
+                                            {
+                                                <label class="checkbox-inline"><input id="chkTrackStatus" type="checkbox">Vrij</label>
+}
+                                        </div>
+                                        
+                                    </div>}
+                                <input type="hidden" id="Spoornummer" value="@Model.TrackNumber" />
+                            }
+
+                                <h3>Opmerkingen</h3>
+                                <div class="form-group">
+                                    @Html.LabelFor(m => m.Note)<br />
+                                    @Html.TextAreaFor(m => m.Note, new { @class = "NotResizeAble  form-control"})
+                                </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="tab-pane" id="reserveringen">
+
+                <br />
+                <div>
+                    <button role="button" class="btn btn-default" data-toggle="modal" data-target="#Reservation" onclick="LoadReservationModal()" data-dismiss="modal"><span class="glyphicon glyphicon-plus"></span> &ensp;Plan Reservering</button>
+                </div>
+                <br />
+                @if (Model.Reservations != null)
+                {
+                    <table class="table table-hover table-striped">
+                        <tr>
+                            <th>Datum/Tijd</th>
+                            <th>Spoornummer</th>
+                            <th>Tramnummer</th>
+                        </tr>
+                        @foreach (EyeCT4RailsBackend.Reservation reservation in Model.Reservations)
+                        {
+                            <tr>
+                                <td>@reservation.Date</td>
+                                <td>@reservation.Track.TrackNumber</td>
+                                <td>@reservation.Tram.Number</td>
+                            </tr>
+}
+                    </table>}
+                else
+                {
+                    <p>Er zijn geen reserveringen voor dit spoor.</p>}
+            </div>
+        </div>
+
+    </div>
+</div>
+<div class="modal-footer">
+    <button type="button" class="btn btn-default" data-dismiss="modal">Sluiten</button>
+    <button type="submit" form="TrackForm" class="btn btn-primary btnSaveEditedTrack">Opslaan</button>
+</div>
+
+<script>
+    function LoadReservationModal() {
+        $('.ModalDivReservation').load('@Url.Action("Reservation", "Home", new { track_id = Model.ID })');
+    }
+
+
+    @*$(function () {
+        $.post("@Url.Action("Edit", "Track")", {
+            TrackNumber: @Model.ID,
+            Enabled: $('#Opmerking').val(),
+            Note: $('#Opmerking').val()
+        }, function Success(data) {
+            $('.ModalDivTrack').load('/Home/Track/' + @Model.ID);
+        });
+    });*@
+
+    $(function () {
+        $('.btnSaveEditedTrack').on('click', function () {
+            var checked = false;
+            if ($('#chkTrackStatus').is(":checked")) {
+                checked = true;
+            }
+            var EditedTrack = { TrackNumber: $('#Spoornummer').val(), Enabled: checked, Note: $('#Note').val() }
+            $.ajax({
+                type: "GET",
+                url: "/Track/Edit",
+                data: EditedTrack,
+                success: function (result) {
+                    if (result == "2") {
+                        window.location.replace('/Home/Index');
+                    }
+                }
+            });
+        });
+    });
+
+</script>

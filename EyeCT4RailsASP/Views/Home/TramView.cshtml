@@ -1,0 +1,479 @@
+﻿@using EyeCT4RailsBackend;
+@using ExtendedObservableCollection;
+
+@model Tram
+
+@{
+    string color = null;
+    Remise remise = (Remise)Session["Remise"];
+}
+
+<div class="modal-header">
+    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+    <h4 class="modal-title" id="Tram-label">
+        Tram @Model.Number
+        @if (Model.Sector != null && Model.Sector.Track != null)
+        {
+            <text> - Spoor @Model.Sector.Track.TrackNumber</text>}
+    </h4>
+</div>
+<div class="modal-body">
+    <div>
+        <ul id="headtabs" class="nav hide nav-tabs" role="tablist">
+            <li role="presentation" class="active"><a href="#HTram" aria-controls="HTram" role="tab" data-toggle="tab">Tram</a></li>
+            <li role="presentation"><a href="#PActivity" aria-controls="PActivity" role="tab" data-toggle="tab">PActivity</a></li>
+            <li role="presentation"><a href="#NPActivity" aria-controls="NPActivity" role="tab" data-toggle="tab">NPActivity</a></li>
+        </ul>
+        <div id="tabs" class="tab-content">
+            <div role="tabpanel" class="tab-pane active" id="HTram">
+                <ul class="nav nav-tabs" role="tablist">
+                    <li role="presentation" class="active"><a href="#General" aria-controls="General" role="tab" data-toggle="tab">Algemeen</a></li>
+                    @if (Permission.Check(remise.UserLoggedIn, Permission.Permissions.CanViewTabTramClean))
+                    {
+                        <li role="presentation"><a href="#Schoonmaak" aria-controls="Schoonmaak" role="tab" data-toggle="tab">Schoonmaak</a></li>}
+                    @if (Permission.Check(remise.UserLoggedIn, Permission.Permissions.CanViewTabTramReparation))
+                    {
+                        <li role="presentation"><a href="#Onderhoud" aria-controls="Onderhoud" role="tab" data-toggle="tab">Onderhoud</a></li>}
+
+                    <li role="presentation"><a href="#Reserveringen" aria-controls="Reserveringen" role="tab" data-toggle="tab">Reserveringen</a></li>
+                </ul>
+                <div class="tab-content">
+                    <div role="tabpanel" class="tab-pane active" id="General">
+                        <h2>Tramstatus</h2>
+                        <div class="input-group">
+                            @if (Permission.Check(remise.UserLoggedIn, Permission.Permissions.CanSetTramCleanState))
+                            {
+                                <input type="checkbox" id="isclean" onchange="statuscheck(true)" @((Model.TramState == Tram.State.Dirty || Model.TramState == Tram.State.ReparationDirty) ? "checked" : "") /> <text>Schoonmaken</text>}
+                            else
+                            {
+                                <input type="checkbox" id="isclean" onchange="statuscheck(true)" @((Model.TramState == Tram.State.Dirty || Model.TramState == Tram.State.ReparationDirty) ? "checked" : "") disabled /> <text>Schoonmaken</text>
+                            }
+                            @if (Permission.Check(remise.UserLoggedIn, Permission.Permissions.CanSetTramReparationState))
+                            {
+                                <input type="checkbox" id="isbroken" onchange="statuscheck(false)" @((Model.TramState == Tram.State.Reparation || Model.TramState == Tram.State.ReparationDirty) ? "checked" : "")/> <text>Repareren</text>}
+                            else
+                            {
+                                <input type="checkbox" id="isbroken" onchange="statuscheck(false)" @((Model.TramState == Tram.State.Reparation || Model.TramState == Tram.State.ReparationDirty) ? "checked" : "") disabled /> <text>Repareren</text>
+                            }
+                        </div>
+                        <hr />
+                        <h2>Opmerkingen</h2>
+                        @if (Permission.Check(remise.UserLoggedIn, Permission.Permissions.CanEditTramNote))
+                        {
+                            <textarea type="text" class="form-control" id="Opmerking" placeholder="Opmerking" cols="50"  rows="5" style="height:100px;">@Model.Note</textarea>
+                        }
+                        else
+                        {
+                            <textarea type="text" class="form-control" id="Opmerking" placeholder="Opmerking" cols="50" rows="5" style="height:100px;" disabled>@Model.Note</textarea>
+                        }
+
+                    </div>
+                    <div role="tabpanel" class="tab-pane" id="Schoonmaak" style="text-align: center; margin: auto">
+                        <br />
+                        <div class="btn-group ">
+                            @if (Permission.Check(remise.UserLoggedIn, Permission.Permissions.CanCreateRecursiveCleanTask) || Permission.Check(remise.UserLoggedIn, Permission.Permissions.CanCreateRecursiveReparationTask))
+                            {
+                                <button type="button" class="btn btn-default" onclick="resetfields(true, false)">Plan periodieke schoonmaak</button>}
+                            else
+                            {
+                                <button type="button" class="btn btn-default" onclick="resetfields(true, false)" disabled>Plan periodieke schoonmaak</button>}
+                            <button type="button" class="btn btn-default" onclick="resetfields(false, false)">Voer uitgevoerde schoonmaak in</button>
+                        </div>
+                        <br /><br />
+                        <table class="table table-hover">
+                            <tr>
+                                <th>Datum / periode</th>
+                                <th>Werkzaamheden</th>
+                                <th>Is uitgevoerd</th>
+                                <th>Gepland voor</th>
+                                <th>Notitie</th>
+                                <th>Edit</th>
+                            </tr>
+                            @if (Model.Activities != null && Model.Activities.ToList().FindAll((a) => a.ActivityType == Activity.Type.Cleaning).Count != 0)
+                            {
+                                foreach (Activity activity in Model.Activities.ToList().FindAll((a) => a.ActivityType == Activity.Type.Cleaning))
+                                {
+                                    if (activity is PeriodicActivity)
+                                    {
+                                        color = "#5bc0de";
+
+                                        PeriodicActivity periodicActivity = (PeriodicActivity)activity;
+                                        <tr style="background-color:@color">
+                                            <td id="pcperiod-@periodicActivity.ID">@periodicActivity.Period dagen</td>
+                                            <td id="pcworknote-@periodicActivity.ID">@periodicActivity.WorkNote</td>
+                                            <td><div id="pcisexcecuted-@periodicActivity.ID" class="checkbox"><input type="checkbox" checked="checked" disabled /></div></td>
+                                            <td id="pcuser-@periodicActivity.ID">@periodicActivity.PerformedBy.ToString()</td>
+                                            <td id="prremark-@periodicActivity.ID"></td>
+                                            @if (Permission.Check(remise.UserLoggedIn, Permission.Permissions.CanCreateRecursiveCleanTask) || Permission.Check(remise.UserLoggedIn, Permission.Permissions.CanCreateRecursiveReparationTask))
+                                            {
+                                                <td><button onclick="fillpactivityvalues(@periodicActivity.ID, false)"><span class="glyphicon glyphicon-edit"></span></button></td>
+                                            }
+                                            else
+                                            {
+                                                <td><button onclick="fillpactivityvalues(@periodicActivity.ID, false)" disabled><span class="glyphicon glyphicon-edit"></span></button></td>
+                                            }
+                                        </tr>
+                                    }
+                                    else if (activity is NotPeriodicActivity)
+                                    {
+                                        color = "#f0ad4e";
+
+                                        NotPeriodicActivity notPeriodicActivity = (NotPeriodicActivity)activity;
+                                        <tr style="background-color:@color">
+                                            <td id="npcdate-@notPeriodicActivity.ID">@notPeriodicActivity.Date</td>
+                                            <td id="npcworknote-@notPeriodicActivity.ID">@notPeriodicActivity.WorkNote</td>
+                                            <td><div id="npcisexcecuted-@notPeriodicActivity.ID" class="checkbox"><input type="checkbox" checked="checked" disabled /></div></td>
+                                            <td id="npcuser-@notPeriodicActivity.ID">@notPeriodicActivity.PerformedBy</td>
+                                            <td id="npcremark-@notPeriodicActivity.ID">@notPeriodicActivity.Remark</td>
+                                            <td><button onclick="fillnpactivityvalues(@notPeriodicActivity.ID, false)"><span class="glyphicon glyphicon-edit"></span></button></td>
+                                        </tr>
+                                    }
+                                }
+                            }
+                        </table>
+                    </div>
+                    <div role="tabpanel" class="tab-pane" id="Onderhoud" style="text-align: center; margin: auto">
+                        <br />
+                        <div class="btn-group">
+                            @if (Permission.Check(remise.UserLoggedIn, Permission.Permissions.CanCreateRecursiveReparationTask))
+                            {
+                                <button type="button" class="btn btn-default" onclick="resetfields(true, true)">Plan periodieke reperatie</button>}
+                            else
+                            {
+                                <button type="button" class="btn btn-default" onclick="resetfields(true, true)" disabled>Plan periodieke reparatie</button>}
+                            <button type="button" class="btn btn-default" onclick="resetfields(false, true)">Voer uitgevoerde reparatie in</button>
+                        </div>
+                        <br /><br />
+                        <table class="table table-hover">
+                            <tr>
+                                <th>Datum / periode</th>
+                                <th>Werkzaamheden</th>
+                                <th>Is uitgevoerd</th>
+                                <th>Gepland voor</th>
+                                <th>Notitie</th>
+                                <th>Edit</th>
+                            </tr>
+                            @if (Model.Activities != null && Model.Activities.ToList().FindAll((a) => a.ActivityType == Activity.Type.Reparation).Count != 0)
+                            {
+                                foreach (Activity activity in Model.Activities.ToList().FindAll((a) => a.ActivityType == Activity.Type.Reparation))
+                                {
+                                    if (activity is PeriodicActivity)
+                                    {
+                                        color = "#5bc0de";
+                                        PeriodicActivity periodicActivity = (PeriodicActivity)activity;
+                                        <tr style="background-color:@color">
+                                            <td id="prperiod-@periodicActivity.ID">@periodicActivity.Period dagen</td>
+                                            <td id="prworknote-@periodicActivity.ID">@periodicActivity.WorkNote</td>
+                                            <td><div id="prisexcecuted-@periodicActivity.ID" class="checkbox"><input type="checkbox" checked="checked" disabled /></div></td>
+                                            <td id="pruser-@periodicActivity.ID">@periodicActivity.PerformedBy.ToString()</td>
+                                            <td id="prremark-@periodicActivity.ID"></td>
+                                            @if (Permission.Check(remise.UserLoggedIn, Permission.Permissions.CanCreateRecursiveCleanTask) || Permission.Check(remise.UserLoggedIn, Permission.Permissions.CanCreateRecursiveReparationTask))
+                                            {
+
+                                                <td><button onclick="fillpactivityvalues(@periodicActivity.ID, true)"><span class="glyphicon glyphicon-edit"></span></button></td>
+                                            }
+                                            else
+                                            {
+                                                <td><button onclick="fillpactivityvalues(@periodicActivity.ID, true)" disabled><span class="glyphicon glyphicon-edit"></span></button></td>
+                                            }
+                                        </tr>
+                                    }
+                                    else if (activity is NotPeriodicActivity)
+                                    {
+                                        color = "#f0ad4e";
+
+                                        NotPeriodicActivity notPeriodicActivity = (NotPeriodicActivity)activity;
+                                        <tr style="background-color:@color">
+                                            <td id="nprdate-@notPeriodicActivity.ID">@notPeriodicActivity.Date</td>
+                                            <td id="nprworknote-@notPeriodicActivity.ID">@notPeriodicActivity.WorkNote</td>
+                                            <td><div id="nprisexcecuted-@notPeriodicActivity.ID" class="checkbox"><input type="checkbox" checked="checked" disabled /></div></td>
+                                            <td id="npruser-@notPeriodicActivity.ID">@notPeriodicActivity.PerformedBy</td>
+                                            <td id="nprremark-@notPeriodicActivity.ID">@notPeriodicActivity.Remark</td>
+                                            <td><button onclick="fillnpactivityvalues(@notPeriodicActivity.ID, true)"><span class="glyphicon glyphicon-edit"></span></button></td>
+                                        </tr>
+                                    }
+                                }
+                            }
+                        </table>
+                    </div>
+                    <div role="tabpanel" class="tab-pane" id="Reserveringen">
+                        <br />
+                        <button role="button" class="btn btn-default" onclick="LoadReservationModal()" data-toggle="modal" data-target="#Reservation" data-dismiss="modal">Plan Reservering</button>
+                        <br /><br />
+                        <table class="table table-hover table-striped">
+                            <tr>
+                                <th>Datum/Tijd</th>
+                                <th>Spoornummer</th>
+                                <th>Tramnummer</th>
+                            </tr>
+                            @if (Model.Reservations != null)
+                            {
+                                foreach (Reservation reservation in Model.Reservations)
+                                {
+                                    <tr>
+                                        <td>@reservation.Date</td>
+                                        <td>@reservation.Track.TrackNumber</td>
+                                        <td>@reservation.Tram.Number</td>
+                                    </tr>
+                                }
+                            }
+                        </table>
+
+                    </div>
+                </div>
+            </div>
+            <div id="PActivity" class="tab-pane">
+                <form method="post">
+                    <h4 class="modal-title" id="PActivity-label">Periodieke activiteit</h4>
+                    <hr />
+                    <div class="form-group">
+                        @{
+//TODO dagen,jaren enzo?
+                        }
+                        <label for="npaperiod">Periode (in dagen)</label>
+                        <input id="npaperiod" type="text" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="npaworknote">Uit te voeren taak</label>
+                        <input id="npaworknote" type="text" class="form-control">
+                    </div>
+                    <div class="dropdown">
+                        <label for="npaperformedBy">Gepland voor</label>
+                        <button id="npaperformedBy" class="dropdown-toggle" type="button" data-toggle="dropdown">
+                            <text id="npaperformedByText">@(((Remise)Session["Remise"]).UserLoggedIn)</text>
+                            <span class="caret"></span>
+                        </button>
+                        <ul class="dropdown-menu" id="npaperformedByDropdown" aria-labelledby="npaperformedBy">
+                        </ul>
+                    </div>
+                </form>
+            </div>
+            <div id="NPActivity" class="tab-pane">
+                <form method="post">
+                    <h4 class="modal-title">Uitgevoerde activiteit</h4>
+                    <hr />
+                    <div class="form-group">
+                        <label for="nnpadate">De uitgevoerde datum</label>
+                        <input id="nnpadate" type="date" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="nnpworknote">Uitgevoerde werkzaamheden</label>
+                        <input id="nnpworknote" type="text" class="form-control">
+                    </div>
+                    <div class="dropdown">
+                        <label for="nnpperformedBy">Uitgevoerd door</label>
+                        <button id="nnpperformedBy" class="dropdown-toggle" type="button" data-toggle="dropdown">
+                            <text id="nnpperformedByText">@(((Remise)Session["Remise"]).UserLoggedIn)</text>
+                            <span class="caret"></span>
+                        </button>
+                        <ul class="dropdown-menu" id="nnpperformedByDropdown">
+                        </ul>
+                    </div>
+                    <div class="form-group">
+                        <label for="nnpremark">Notitie</label>
+                        <input id="nnpremark" type="text" class="form-control">
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="modal-footer">
+    <button id="cancel" type="button" class="btn btn-default" onclick="cancel()">Sluiten</button>
+    <button id="save" type="button" class="btn btn-primary" onclick="save()">Opslaan</button>
+</div>
+
+<script>
+    var isactivitymode = false;
+    var isrepairmode = false;
+    var ispactivtymode = false;
+    var activityid = -1;
+
+    function statuscheck(iscleaning) {
+        $.post('@Url.Action("CanStateChange", "Home")', {
+            tramID: @Model.ID,
+            isCleaning: iscleaning
+        }, function success(data)
+        {
+            if (data == "False" && iscleaning)
+            {
+                document.getElementById('isclean').checked = false;
+            } else if (data == "False") {
+                document.getElementById('isbroken').checked = true;
+            }
+        });
+    }
+
+    function LoadReservationModal() {
+        $('.ModalDivReservation').load('@Url.Action("Reservation", "Home", new { tram_id = Model.ID })');
+    }
+
+    function getusers(filter) {
+        $.get('@Url.Action("GetUsers", "Home")', {filter : filter},
+            function (data) {
+                var dropdowns = document.getElementsByClassName('dropdown-menu');
+                for(var y = 0; y < dropdowns.length; y++) {
+                    var dropdownId = dropdowns[y].id;
+                    if(dropdownId != undefined){
+                        if(dropdownId.indexOf('Dropdown') > -1) {
+                            dropdowns[y].innerHTML = "";
+                    for(var i = 0; i < data.length; i++) {
+                                var listitem = document.createElement('li');
+                                var listsubitem = document.createElement('a');
+
+                                listsubitem.innerHTML = data[i];
+                                listsubitem.className = 'sjoerdClick';
+
+                                listitem.appendChild(listsubitem);
+
+                                dropdowns[y].appendChild(listitem);
+                            }
+                        }
+                    }
+                }
+            }, 'json');
+        AttachClick();
+    }
+
+    function cancel() {
+        if (isactivitymode) {
+            $('#headtabs a[href="#HTram"]').tab('show');
+        } else {
+            $('#Tram').modal('hide');
+        }
+
+        isactivitymode = false;
+        isrepairmode = false;
+        ispactivtymode = false;
+    }
+
+    function save() {
+        if (isactivitymode) {
+            if (ispactivtymode) {
+                $.post("@Url.Action("UpdatePActivity", "Home")", {
+                    activityID: activityid,
+                    tramID: @Model.ID,
+                    username: username,
+                    isReparation: isrepairmode,
+                    worknote: document.getElementById('npaworknote').value,
+                    period: document.getElementById('npaperiod').value
+                }, function Success(data) {
+                    debugger;
+                    if (data == "False") {
+                        alert('De periodieke activiteit kon niet worden in geplanned');
+                    }
+                    $('.ModalDiv').load('/Home/TramView/' + @Model.Number);
+                });
+            } else {
+                $.post("@Url.Action("UpdateNPActivity", "Home")", {
+                    ActivityID: activityid,
+                    tramID: @Model.ID,
+                    username: username,
+                    isReparation: isrepairmode,
+                    worknote: document.getElementById('nnpworknote').value,
+                    remark: document.getElementById('nnpremark').value
+                }, function Success(data) {
+                    $('.ModalDiv').load('/Home/TramView/' + @Model.Number);
+                });
+
+                $('#headtabs a[href="#HTram"]').tab('show');
+            }
+        } else {
+             $.post("@Url.Action("UpdateGeneralTram", "Home")", {
+                    tramID: @Model.ID,
+                    isDirty: document.getElementById('isclean').checked,
+                    isBroken: document.getElementById('isbroken').checked,
+                    note: document.getElementById('Opmerking').value
+                }, function Success(data) {
+                    $('.ModalDiv').load('/Home/TramView/' + @Model.Number);
+                });
+
+            $('#Tram').modal('hide');
+        }
+
+        UpdateTramColor(@Model.Number);
+
+        isactivitymode = false;
+        isrepairmode = false;
+        ispactivtymode = false;
+    }
+
+    function activitymode(isperiodic) {
+        isactivitymode = true;
+
+        if (isperiodic) {
+            ispactivtymode = true;
+            $('#headtabs a[href="#PActivity"]').tab('show');
+        } else {
+            ispactivtymode = false;
+            $('#headtabs a[href="#NPActivity"]').tab('show');
+        }
+    }
+
+    function resetfields(isperiodic, isreperation) {
+        activityid = -1;
+
+        isrepairmode = isreperation;
+
+        if (isreperation) {
+            getusers(0);
+        } else {
+            getusers(1);
+        }
+
+        if (isperiodic) {
+            //NewPeriodicActivity
+            document.getElementById('npaperiod').value = '';
+            document.getElementById('npaworknote').value = '';
+            activitymode(true);
+        } else {
+            //NewNotPeriodicActivity
+            document.getElementById('nnpadate').innerHTML = new Date().toLocaleString();//Today
+            document.getElementById('nnpadate').disabled = true;
+            document.getElementById('nnpworknote').value = '';
+            document.getElementById('nnpremark').value = '';
+            activitymode(false);
+        }
+    }
+
+    function fillpactivityvalues(id, isreperation) {
+        activityid = id;
+        isrepairmode = isreperation;
+
+
+
+        if (isreperation) {
+            document.getElementById('npaperiod').value = document.getElementById('prperiod-' + id).textContent;
+            document.getElementById('npaworknote').value = document.getElementById('prworknote-' + id).textContent;
+            document.getElementById('npaperformedByText').innerHTML = document.getElementById('pruser-' + id).innerHTML;
+            getusers(0);
+        } else {
+            document.getElementById('npaperiod').value = document.getElementById('pcperiod-' + id).textContent;
+            document.getElementById('npaworknote').value = document.getElementById('pcworknote-' + id).textContent;
+            document.getElementById('npaperformedByText').innerHTML = document.getElementById('pcuser-' + id).innerHTML;
+            getusers(1);
+        }
+
+        activitymode(true);
+    }
+    function fillnpactivityvalues(id, isreperation) {
+        activityid = id;
+        isrepairmode = isreperation;
+
+        if (isreperation) {
+            document.getElementById('nnpadate').value = document.getElementById('nprdate-' + id).textContent;
+            document.getElementById('nnpworknote').value = document.getElementById('nprworknote-' + id).textContent;
+            document.getElementById('nnpperformedByText').innerHTML = document.getElementById('npruser-' + id).innerHTML;
+            document.getElementById('nnpremark').value = document.getElementById('nprremark-' + id).textContent;
+            getusers(0);
+        } else {
+            document.getElementById('nnpadate').value = document.getElementById('npcdate-' + id).textContent;
+            document.getElementById('nnpworknote').value = document.getElementById('npcworknote-' + id).textContent;
+            document.getElementById('nnpperformedByText').innerHTML = document.getElementById('npcuser-' + id).innerHTML;
+            document.getElementById('nnpremark').value = document.getElementById('npcremark-' + id).textContent;
+            getusers(1);
+        }
+
+        activitymode(false);
+    }
+</script>

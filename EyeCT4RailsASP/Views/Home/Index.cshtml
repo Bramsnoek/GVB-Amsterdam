@@ -1,0 +1,258 @@
+﻿@using EyeCT4RailsBackend;
+
+@{
+    ViewBag.Title = "Home";
+}
+
+@{
+    ViewBag.Title = "Home";
+    int sideCheck = 0;
+    Remise remise = (Remise)Session["Remise"];
+    List<Track> tracks = new List<Track>(remise.TrackRepos.TrackRepo.Collection);
+    List<Tram> trams = new List<Tram>(remise.TramRepos.TramRepo.Collection);
+}
+
+<html>
+<head>
+</head>
+<body>
+    @*<button role="button" data-toggle="modal" data-target="#Tram" onclick="LoadModal()"> SJOERD DEZEE :)</button>
+        <button role="button" data-toggle="modal" data-target="#Track" onclick="LoadModal2()">Test Track</button>*@
+
+
+    <div class="modal fade" id="Tram" tabindex="-1" role="dialog" aria-labelledby="Tram-label" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="ModalDiv">
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="Track" tabindex="-1" role="dialog" aria-labelledby="Track-label" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="ModalDivTrack">
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="Reservation" tabindex="-1" role="dialog" aria-labelledby="Reservation" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="ModalDivReservation">
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="Page-Container" style="margin-top: 50px;">
+        <!-- sidebar -->
+        @if (Permission.Check(remise.UserLoggedIn, Permission.Permissions.CanDragTrams))
+        {
+            <div class="List_Wrapper" style="width: 10%">
+                <div class="input-group">
+                    <input type="text" class="form-control" placeholder="Filter" style="max-width: 100%" id="ListFilter" onchange="SearchTrams()">
+                </div>
+                <ul class="list-group adjusted" id="tramlist" style="width: 100%; height: 100%; float: left;">
+                    @foreach (Tram tram in remise.TramRepos.TramRepo.Collection.ToList().Where(x => x.Sector == null).OrderBy(x => x.Number))
+                    {
+                        <li class="list-group-item" style="text-align: center;" id="LTram: @tram.Number" draggable="true" ondragstart="drag(event)" ondrop="drop(event)" ondragover="allowDrop(event)">Tram: @tram.Number</li>}
+                </ul>
+
+
+            </div>
+        }
+        <section class="trackWrapper" id="trackwrapper">
+            @foreach (Track track in remise.TrackRepos.TrackRepo.Collection.ToList())
+            {
+                if (sideCheck == 0)
+                {
+                    <div id="left">
+                        @Html.Partial("TrackView", track)
+                    </div>sideCheck = 1;
+                }
+                else
+                {
+                    <div id="right">
+                        @Html.Partial("TrackView", track)
+                    </div>sideCheck = 0;
+                }
+            }
+        </section>
+
+        @if(Permission.Check(remise.UserLoggedIn, Permission.Permissions.CanDragTrams))
+        {}
+        else if (Permission.Check(remise.UserLoggedIn, Permission.Permissions.CanViewReparationView))
+        {
+            <script>
+                filterState(2);
+            </script>
+        }
+        else if(Permission.Check(remise.UserLoggedIn, Permission.Permissions.CanViewCleaningView))
+        {
+            <script>
+                filterState(1);
+            </script>
+        }
+    </div>
+    <ul id="contextMenuTram" class="dropdown-menu" role="menu" style="display:none">
+        <li><a tabindex="-1" href="#">Open Tram</a></li>
+        @if (Permission.Check(remise.UserLoggedIn, Permission.Permissions.CanEditTrack))
+        {
+            <li><a tabindex="-1" href="#">Open Spoor</a></li>
+        }
+    </ul>
+
+    <ul id="contextMenuSector" class="dropdown-menu" role="menu" style="display:none">
+        @if (Permission.Check(remise.UserLoggedIn, Permission.Permissions.CanEditTrack))
+        {
+            <li><a tabindex="-1" href="#">Open Spoor</a></li>
+        }
+        @if (Permission.Check(remise.UserLoggedIn, Permission.Permissions.CanEditSector))
+        {
+            <li><a tabindex="-1" href="#">Blokkeer sector</a></li>
+        }
+    </ul>
+
+</body>
+</html>
+
+<script>
+    var username = '@(((Remise)Session["Remise"]).UserLoggedIn.ToString())';
+    function CloseReservationModal() {
+        $('#Reservation').modal('hide');
+    }
+
+    function AttachClick() {
+        $('body').on('click', 'a.sjoerdClick', function () {
+            var dropdown = $(this)[0].parentNode.parentNode.parentNode;
+            var textDiv = dropdown.getElementsByTagName("Text")[0];
+            var userText = $(this).text();
+            username = userText;
+            textDiv.innerHTML = userText;
+        });
+    }
+
+
+    function LoadTrackModal(trackId) {
+        $('.ModalDivTrack').load('/Home/Track/' + trackId);
+    }
+
+    function LoadTramModal(tramId) {
+        $('.ModalDiv').load('/Home/TramView/' + tramId);
+    }
+
+    $(document).ready(function () {
+        LoadContextMenu();
+    });
+
+    var $invokedOn;
+    function LoadContextMenu() {
+        (function ($, window) {
+
+            $.fn.contextMenu = function (settings) {
+
+                return this.each(function () {
+
+
+                    // Open context menu
+                    $(this).on("contextmenu", function (e) {
+                        // return native menu if pressing control
+                        if (e.ctrlKey) return;
+                        //open menu
+                        var $menu = $(settings.menuSelector)
+                            .data("invokedOn", $(e.target))
+                            .show()
+                            .css({
+                                position: "absolute",
+                                left: getMenuPosition(e.clientX, 'width', 'scrollLeft'),
+                                top: getMenuPosition(e.clientY, 'height', 'scrollTop')
+                            })
+                            .off('click')
+                            .on('click', 'a', function (e) {
+                                $menu.hide();
+
+                                var $invokedOn;
+
+                                //alert($menu.data("invokedOn").text());
+                                console.log($menu.data("invokedOn"));
+
+                                if (e.target.id.indexOf('S') > -1) {
+                                    alert('test');
+                                    $invokedOn = ev.target.id;
+                                }
+                                else {
+                                    $invokedOn = $menu.data("invokedOn");
+
+                                }
+
+                                var $selectedMenu = $(e.target);
+
+                                settings.menuSelected.call(this, $invokedOn, $selectedMenu);
+                            });
+
+                        return false;
+                    });
+
+                    //make sure menu closes on any click
+                    $('body').click(function () {
+                        $(settings.menuSelector).hide();
+                    });
+                });
+
+                function getMenuPosition(mouse, direction, scrollDir) {
+                    var win = $(window)[direction](),
+                        scroll = $(window)[scrollDir](),
+                        menu = $(settings.menuSelector)[direction](),
+                        position = mouse + scroll;
+
+                    // opening menu would pass the side of the page
+                    if (mouse + menu > win && menu < mouse)
+                        position -= menu;
+
+                    return position;
+                }
+
+            };
+        })(jQuery, window);
+
+
+        $(".Tram").contextMenu({
+            menuSelector: "#contextMenuTram",
+            menuSelected: function (invokedOn, selectedMenu) {
+                console.log('Item: ' + selectedMenu.text());
+
+                if (selectedMenu.text() == 'Open Tram') {
+                    OpenTramModal(invokedOn.text());
+                }
+                else if (selectedMenu.text() == "Open Spoor") {
+                    var trackNumber = document.getElementById(invokedOn.text()).parentNode.className.replace(/^\D+/g, '');
+                    OpenTrackModal(trackNumber);
+                }
+
+                //var msg = "You selected the menu item '" + selectedMenu.text() +
+                //    "' on the value '" + invokedOn.text() + "'";
+            }
+        });
+        $(".column").contextMenu({
+            menuSelector: "#contextMenuSector",
+            menuSelected: function (invokedOn, selectedMenu) {
+                console.log(invokedOn[0].className);
+
+                if (selectedMenu.text() == "Open Spoor") {
+                    OpenTrackModal(invokedOn[0].className.replace(/^\D+/g, ''));
+                }
+                else if (selectedMenu.text() == "Blokkeer sector") {
+                    ToggleSectorBlock(invokedOn[0].id);
+                }
+            }
+        });
+    }
+
+
+</script>

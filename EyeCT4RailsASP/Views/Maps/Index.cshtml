@@ -1,0 +1,55 @@
+﻿@using EyeCT4RailsBackend
+@model List<Sector>
+@{
+    int i = 0;
+    string test;
+    string infowindow;
+    string infocontent;
+    string spoornummer;
+    ViewBag.Title = "Login";
+}
+
+<h2>Google Maps overzicht</h2>
+
+
+
+<body>
+    <div>
+        <style>
+            #map {
+                width: 100%;
+                height:  calc(100vh - 136px);
+            }
+        </style>
+    </div>
+    <div id="map" style="position: relative; width:100%;"></div>
+    <script>
+      function initMap() {
+        var mapDiv = document.getElementById('map');
+        var map = new google.maps.Map(mapDiv, {
+            center: { lat: 52.34760, lng: 4.85242 }, 
+            draggable: true,
+            streetViewControl: false,
+            mapTypeId: google.maps.MapTypeId.TERRAIN, 
+            zoom: 18
+        });
+          @foreach (var s in Model)
+          {
+              i++;
+              test = "Marker" + i.ToString();
+              infowindow = "infowindow" + i.ToString();
+              infocontent = "infocontent" + i.ToString();
+               <Text> var @test = new google.maps.Marker({ position: { lat: @s.LAT, lng: @s.LNG }, map: map,title: @s.ListedTram.Number.ToString(), label: @s.ListedTram.Number.ToString()});</Text>
+              spoornummer = ((Remise)Session["Remise"]).TrackRepos.TrackRepo.Collection.First(t => t.Sectors.Contains(s.ListedTram.Sector)).TrackNumber.ToString(); 
+              @Html.Raw("var " + infocontent + " = '<div> <h2>Tramnummer: " + s.ListedTram.Number.ToString() + "</h2> <p>Tramtype: " + s.ListedTram.TramType.ToString() + "</br>Status: " + s.ListedTram.TramState.ToString() + "</br>Spoor: " + spoornummer + "</br>" + s.ListedTram.Note + " </p> </div>'; ");
+              @Html.Raw("var " + infowindow + " = new google.maps.InfoWindow( { content: " + infocontent + " } );");
+              @Html.Raw(test + ".addListener('click', function() { if(previousWindow != null){previousWindow.close();} previousWindow = " + infowindow + "; " + infowindow + ".open(map, " + test + "); });");
+
+          }
+
+          var previousWindow;
+      }
+    </script>
+    <script src="https://maps.googleapis.com/maps/api/js?callback=initMap"
+            async defer></script>
+</body>

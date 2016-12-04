@@ -1,0 +1,84 @@
+﻿@using EyeCT4RailsBackend;
+@model Track
+
+@{
+    Remise remise = (Remise)Session["Remise"];
+}
+<div id="contentBox">
+
+
+    @if (Permission.Check(remise.UserLoggedIn, Permission.Permissions.CanEditTrack))
+    {
+        <div class="column" style="width: 12%; border: none; background-color: transparent" id="@Model.TrackNumber" onclick="OpenTrackModal(this.id)">
+            <button type="button" class="btn btn-primary btn-circle btn-xl"><i class="glyphicon glyphicon-road pull-left" style="margin-left: 13px; margin-top: 2px;"></i>@Model.TrackNumber</button>
+        </div>
+    }
+    else
+    {
+        <div class="column" style="width: 12%; border: none; background-color: transparent" id="@Model.TrackNumber">
+            <button type="button" class="btn btn-primary btn-circle btn-xl"><i class="glyphicon glyphicon-road pull-left" style="margin-left: 13px; margin-top: 2px;"></i>@Model.TrackNumber</button>
+        </div>
+    }
+
+    @foreach (Sector sector in Model.Sectors)
+    {
+        var Color = "slategrey";
+
+        if (sector.ListedTram != null)
+        {
+            switch (sector.ListedTram.TramState)
+            {
+                case Tram.State.Ok:
+                    Color = "#5cb85c";
+                    break;
+                case Tram.State.Dirty:
+                    Color = "#337ab7";
+                    break;
+                case Tram.State.Reparation:
+                    Color = "#D2B48C";
+                    break;
+                case Tram.State.ReparationDirty:
+                    Color = "#f0ad4e";
+                    break;
+            }
+        }
+
+        if (!sector.Enabled)
+        {
+            Color = "#d9534f";
+        }
+        if (!sector.Track.Enabled)
+        {
+            Color = "#d9534f";
+        }
+
+        float sectorWidth = 88 / (Model.Sectors.Count);
+        if (Permission.Check(remise.UserLoggedIn, Permission.Permissions.CanDragTrams))
+        {
+            <div class="column @sector.Track.TrackNumber" id="S @sector.ID" style="background-color: @Color; min-width: @sectorWidth%;" ondrop="drop(event)" ondragover="allowDrop(event)" ondragstart="drag(event)">
+                @if (sector.ListedTram != null)
+                {
+                    <div class="Tram" id="Tram: @sector.ListedTram.Number" ondragstart="drag(event)" ondrop="drop(event)" ondragover="allowDrop(event)" draggable="true" ondblclick="OpenTramModal(this.id)">
+                        <p class="TramID">Tram: @sector.ListedTram.Number</p>
+                    </div>
+}
+            </div>
+        }
+        else
+        {
+            <div class="column @sector.Track.TrackNumber" id="S @sector.ID" style="background-color: @Color; min-width: @sectorWidth%;">
+                @if (sector.ListedTram != null)
+                {
+                    <div class="Tram" id="Tram: @sector.ListedTram.Number"ondblclick="OpenTramModal(this.id)">
+                        <p class="TramID">Tram: @sector.ListedTram.Number</p>
+                    </div>
+}
+            </div>
+        }
+
+
+
+
+    }
+
+</div>

@@ -1,0 +1,116 @@
+﻿@using EyeCT4RailsBackend
+@using EyeCT4RailsASP.ViewModels
+
+@model TrackFormViewModel
+
+@{
+    ViewBag.Title = "Spoor Toevoegen";
+}
+<html>
+<head>
+    <style>
+        .NotResizeAble {
+            resize: none;
+        }
+
+        .RadioButtonBlockedTrack {
+            float: left;
+            width: 50px;
+            margin-left: 20px;
+        }
+
+        .RadioButtonInOutTrack {
+            float: left;
+            width: 40px;
+            margin-left: 20px;
+        }
+
+        .LeftFloat {
+            float: left;
+        }
+
+        .RightFloat {
+            float: left;
+        }
+    </style>
+
+
+</head>
+<body>
+    <div class="col-lg-3 LeftFloat"></div>
+    <div class="LeftFloat col-lg-6">
+        <div>
+            <h1>Spoor Toevoegen</h1>
+        </div>
+        <div class="panel panel-default">
+            <div class="panel-body">
+                @using (Html.BeginForm("Save", "Track"))
+                {
+                    <div class="form-group">
+                        @Html.LabelFor(m => m.TrackNumber)<br />
+                        @Html.TextBoxFor(m => m.TrackNumber, new { @class = "form-control" })
+                    </div>
+                    <div class="form-group">
+                        @Html.LabelFor(m => m.State)<br />
+                        @Html.CheckBoxFor(m => m.State, new { @class = "checkbox", @id = "chkState" })
+                    </div>
+                    <div class="form-group">
+                        @Html.LabelFor(m => m.SectorCount)<br />
+                        @Html.DropDownListFor(m => m.SectorCount, new SelectList(new List<Object> { new { value = 1, text = "1" }, new { value = 2, text = "2" }, new { value = 3, text = "3" }, new { value = 4, text = "4" }, new { value = 5, text = "5" }, new { value = 6, text = "6" }, new { value = 7, text = "7" }, new { value = 8, text = "8" }, new { value = 9, text = "9" } }, "value", "text", 1))
+                    </div>
+                    <div class="form-group">
+                        @Html.LabelFor(m => m.Note)<br />
+                        @Html.TextAreaFor(m => m.Note, new { @class = "NotResizeAble form-control" })
+                    </div>
+                    <div class="form-group">
+                        @Html.LabelFor(m => m.ConnectionTrack)<br />
+                        @Html.CheckBoxFor(m => m.ConnectionTrack, new { @class = "checkbox", @id = "chkConnectionTrack" })
+                    </div>
+                    <button type="button" class="btn btn-default" onclick="location.href='@Url.Action("Index", "Home")'">Sluiten</button>
+                    <button type="submit" class="btn btn-primary">Opslaan</button>}
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+
+@*<script>
+        $(function () {
+            $('.btnSave').on('click', function () {
+                var vState = false;
+                alert($('#State').val());
+                if($('#State').val())
+                {
+                    vState = true;
+                }
+                var vInOuTrack = false;
+                alert($('#ConnectionTrack').val());
+                if($('#ConnectionTrack').val())
+                {
+                    vInOuTrack = true;
+                }
+                var Track  = { TrackNumber: $('#TrackNumber').val(), State: vState, SectorCount: $('#SectorCount').val(), ConnectionTrack: vInOuTrack, Note: $('#Note').val() }
+                $.ajax({
+                    type: "GET",
+                    url: "/Track/Save",
+                    data: Track,
+                    success: function (result) {
+                        if (result == "1") {
+                            alert("Spoornummer is verplicht.");
+                        }
+                        else if (result == "2") {
+                            alert("Spoornummer bestaat al.");
+                        }
+                        else if (result == "3") {
+                            alert("Spoornummer moet tussen 1 en 999 zitten.");
+                        }
+                        else if (result == "4") {
+                            window.location.replace('/Home/Index');
+                        }
+
+                    }
+                });
+            });
+        });
+
+    </script>*@
